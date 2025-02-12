@@ -26,7 +26,8 @@ func PingCMC() {
 
 	// установка загаловков в хедер
 	req.Header.Set("Accepts", "application/json")
-	req.Header.Add("X-CMC_PRO_API_KEY", "5bb1d0b7-5ab1-4420-8fb6-1b5b0fad1a4c")
+	//битое апи
+	req.Header.Add("X-CMC_PRO_API_KEY", "5bb1d0b7-5ab1--8fb6-")
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := client.Do(req)
@@ -34,6 +35,7 @@ func PingCMC() {
 		fmt.Printf("Error sending request")
 		os.Exit(1)
 	}
+	defer resp.Body.Close()
 	fmt.Println(resp.Status)
 	respBody, _ := io.ReadAll(resp.Body)
 	fmt.Println(string(respBody))
