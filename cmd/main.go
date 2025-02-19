@@ -1,11 +1,13 @@
 package main
 
 import (
-	"price_checker/api"
+	"price_checker/CMCservice"
 	"price_checker/storage"
 )
 
 func main() {
-	storage.ConnectDB()
-	api.ListingsLatest()
+	db := storage.ConnectDB()
+	repo := storage.NewRequestBDRepository(db)
+
+	CMCservice.ListingsLatest(repo)
 }

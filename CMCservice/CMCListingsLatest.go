@@ -1,4 +1,4 @@
-package api
+package CMCservice
 
 import (
 	"encoding/json"
@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"os"
 	"time"
+
+	"price_checker/storage"
 )
 
 type Listings struct {
@@ -72,10 +74,7 @@ type Status struct {
 	Notice      string    `json:"string"`
 }
 
-type CryptoForDB struct {
-}
-
-func ListingsLatest() {
+func ListingsLatest(repo *storage.BDRepository) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest", nil)
 	if err != nil {
@@ -86,14 +85,14 @@ func ListingsLatest() {
 	// карта параметров клюс - массив значений. Добавка параметров к урл
 	q := url.Values{}
 	q.Add("start", "1")
-	q.Add("limit", "2")
+	q.Add("limit", "100")
 	q.Add("convert", "USD")
 	// start=1&limit=5000&convert=USD
 
 	// установка загаловков в хедер
 	req.Header.Set("Accepts", "application/json")
 	//битое апи
-	req.Header.Add("X-CMC_PRO_API_KEY", "5bb1d0b7-5ab1-4420-8fb6-1b5b0fad1a4c")
+	req.Header.Add("X-CMC_PRO_API_KEY", "KEYCMC")
 	req.URL.RawQuery = q.Encode()
 
 	resp, err := client.Do(req)
@@ -113,16 +112,37 @@ func ListingsLatest() {
 	if err != nil {
 		log.Print("Ошибка декодирования ответа,", err)
 	}
+
+	var CryptoData []storage.CryptoForDB
+
+	for _, crypto := range Listings.Data {
+		usdQoute, ok := crypto.Quote["USD"]
+		if !ok {
+			continue
+		}
+
+		CryptoData = append(CryptoData, storage.CryptoForDB{
+			NameDB:        crypto.Name,
+			PriceDB:       int(usdQoute.Price),
+			PriceChangeDB: float32(usdQoute.PercentChange24h),
+			LastUpdate:    time.Now(),
+		})
+	}
+
+	err = repo.SendMsgDB(CryptoData)
+	if err != nil {
+		log.Print("ошибка при записи в БД")
+	}
 	// Jsonlist, _ := json.MarshalIndent(Listings, "", "  ")
 	// fmt.Println(string(Jsonlist))
 
-	for _, crypto := range Listings.Data {
-		fmt.Println("Криптовалюта:", crypto.Name, "(", crypto.Symbol, ")")
+	// for _, crypto := range Listings.Data {
+	// 	fmt.Println("Криптовалюта:", crypto.Name, "(", crypto.Symbol, ")")
 
-		for currency, quote := range crypto.Quote {
-			fmt.Printf("Курс в %s: %.2f USD\n", currency, quote.Price)
-			fmt.Printf("Изминение цены за 24 часа: %.2f%%\n\n", quote.PercentChange24h)
-		}
-	}
+	// 	for currency, quote := range crypto.Quote {
+	// 		fmt.Printf("Курс в %s: %.2f USD\n", currency, quote.Price)
+	// 		fmt.Printf("Изминение цены за 24 часа: %.2f%%\n\n", quote.PercentChange24h)
+	// 	}
+	// }
 
 }
